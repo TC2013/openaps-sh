@@ -21,7 +21,7 @@ die() {
 
 if [[ $# -lt 2 ]]; then
     #openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [Share serial #]
-    openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING]"
+    openaps device show pump 2>/dev/null >/dev/null || die "Usage: setup.sh <directory> <pump serial #> [max_iob] [/dev/ttySOMETHING] [Share serial #]"
 fi
 directory=`mkdir -p $1; cd $1; pwd`
 serial=$2
@@ -31,10 +31,9 @@ if [[ $# -lt 3 ]]; then
 else
     max_iob=$3
 fi
-
-#if [[ $# -gt 3 ]]; then
-    #share_serial=$4
-#fi
+if [[ $# -gt 3 ]]; then
+    share_serial=$5
+fi
 if [[ $# -gt 3 ]]; then
     ttyport=$4
 fi
@@ -58,7 +57,7 @@ sudo cp ~/src/oref0/logrotate.rsyslog /etc/logrotate.d/rsyslog
 test -d /var/log/openaps || sudo mkdir /var/log/openaps && sudo chown $USER /var/log/openaps
 
 openaps vendor add openapscontrib.timezones
-#openaps vendor add openxshareble
+openaps vendor add openxshareble
 openaps vendor add mmeowlink.vendors.mmeowlink
 
 # don't re-create devices if they already exist
@@ -69,11 +68,11 @@ grep -q pump.ini .gitignore 2>/dev/null || echo pump.ini >> .gitignore
 git add .gitignore
 #grep pump /tmp/openaps-devices || openaps device add pump medtronic $serial || die "Can't add pump"
 grep pump /tmp/openaps-devices || openaps device add pump mmeowlink subg_rfspy $ttyport $serial || die "Can't add pump"
-grep cgm /tmp/openaps-devices || openaps device add cgm dexcom || die "Can't add CGM"
+#grep cgm /tmp/openaps-devices || openaps device add cgm dexcom || die "Can't add CGM"
+#git add cgm.ini
+grep cgm /tmp/openaps-devices || openaps device add cgm openxshareble || die "Can't add Share"
+openaps use cgm configure --serial $share_serial
 git add cgm.ini
-#grep share /tmp/openaps-devices || openaps device add share openxshareble || die "Can't add Share"
-#openaps use share configure --serial $share_serial
-#git add share.ini
 #openaps device remove ns-glucose
 grep ns-glucose /tmp/openaps-devices || openaps device add ns-glucose process 'bash -c "curl -m 30 -s $NIGHTSCOUT_HOST/api/v1/entries/sgv.json?count=288 | json -e \"this.glucose = this.sgv\""' || die "Can't add ns-glucose"
 git add ns-glucose.ini
